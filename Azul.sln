@@ -3,11 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30611.23
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azul.Server", "Server\Azul.Server.csproj", "{D16BCB47-8F35-492E-BE1E-CCE54575B18B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Azul.Server", "Server\Azul.Server.csproj", "{D16BCB47-8F35-492E-BE1E-CCE54575B18B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azul.Client", "Client\Azul.Client.csproj", "{C6131DAE-BDF9-4E36-B04D-5C7CF2CAA5CE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Azul.Client", "Client\Azul.Client.csproj", "{C6131DAE-BDF9-4E36-B04D-5C7CF2CAA5CE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azul.Shared", "Shared\Azul.Shared.csproj", "{14055AA1-D325-48A7-9204-A65E61518E0B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Azul.Shared", "Shared\Azul.Shared.csproj", "{14055AA1-D325-48A7-9204-A65E61518E0B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azul", "Azul\Azul.csproj", "{A7F217D7-B47A-4123-93F8-A179EEC5207C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azul.Tests", "AzulGameTests\Azul.Tests.csproj", "{6E6820BD-72AC-4984-B8CF-43D26AC66AB7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +31,14 @@ Global
 		{14055AA1-D325-48A7-9204-A65E61518E0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{14055AA1-D325-48A7-9204-A65E61518E0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{14055AA1-D325-48A7-9204-A65E61518E0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7F217D7-B47A-4123-93F8-A179EEC5207C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7F217D7-B47A-4123-93F8-A179EEC5207C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7F217D7-B47A-4123-93F8-A179EEC5207C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7F217D7-B47A-4123-93F8-A179EEC5207C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E6820BD-72AC-4984-B8CF-43D26AC66AB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E6820BD-72AC-4984-B8CF-43D26AC66AB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E6820BD-72AC-4984-B8CF-43D26AC66AB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E6820BD-72AC-4984-B8CF-43D26AC66AB7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
