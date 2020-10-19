@@ -4,7 +4,11 @@ namespace Azul
 {
     public interface IDisplay
     {
-        IEnumerable<Tile> Tiles { get; }
+        DisplayType Type { get; }
+        IReadOnlyCollection<Tile> Tiles { get; }
         bool IsEmpty { get; }
+
+        void Put(Tile tile);
+        List<Tile> TakeAll(TileColor tileColor);
     }
 }

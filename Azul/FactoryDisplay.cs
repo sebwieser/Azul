@@ -4,11 +4,12 @@ using System.Linq;
 
 namespace Azul
 {
-    public class FactoryDisplay : AbstractDisplay, IDisplay
+    public class FactoryDisplay : IDisplay
     {
         private static short MAX_TILES = 4;
 
-        public IEnumerable<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
+        public DisplayType Type { get { return DisplayType.FactoryDisplay; } }
+        public IReadOnlyCollection<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
         public bool IsEmpty { get { return _tiles.Count == 0; } }
 
         private List<Tile> _tiles;
@@ -20,22 +21,22 @@ namespace Azul
             _tiles = new List<Tile>(MAX_TILES);
         }
 
-        public override List<Tile> TakeAll(TileColor tileColor)
+        public List<Tile> TakeAll(TileColor tileColor)
         {
             var chosenTiles = _tiles.FindAll(t => t.TileColor.Equals(tileColor));
-            _tiles = _tiles.Except(chosenTiles).ToList();
+            var remainingTiles = _tiles.Except(chosenTiles).ToList();
 
             //Move remaining tiles to the middle
-            if (_tiles.Count > 0)
+            if (remainingTiles.Count > 0)
             {
-                _centre.Put(_tiles);
+                _centre.Put(remainingTiles);
                 _tiles.Clear();
             }
 
             return chosenTiles;
         }
 
-        public override void Put(Tile tile)
+        public void Put(Tile tile)
         {
             if (_tiles.Count == MAX_TILES)
             {

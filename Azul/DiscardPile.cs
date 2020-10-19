@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Azul
 {
-    public class DiscardPile: IDiscardPileState
+    public class DiscardPile
     {
-        public IEnumerable<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
+        public IReadOnlyCollection<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
 
         private List<Tile> _tiles;
         public DiscardPile()

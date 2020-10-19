@@ -4,12 +4,12 @@ using System.Linq;
 
 namespace Azul
 {
-    public class TileBag : ITileBagState
+    public class TileBag
     {
         private static int MAX_TILES = 100;
 
         public int RemainingTiles { get { return _tiles.Count; } }
-        public IEnumerable<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
+        public IReadOnlyCollection<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
 
 
         private List<Tile> _tiles;

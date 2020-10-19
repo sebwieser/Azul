@@ -4,29 +4,30 @@ using System.Collections.ObjectModel;
 
 namespace Azul
 {
-    public class Player : IPlayerState
+    public class Player
     {
-        public IBoardState Board { get { return _board; } }
+        public Board Board { get; }
         public int Score { get; private set; }
-        public IEnumerable<Tile> PendingTiles { get { return _pendingTiles.AsReadOnly(); } }
+        public IReadOnlyCollection<Tile> PendingTiles { get { return _pendingTiles.AsReadOnly(); } }
         public bool ScoredThisRound { get; private set; }
+        public bool HasFiveHorizontalTilesInRow { get; private set; }
+        public bool TookFirstPlayerTile { get; private set; }
 
-        private IGameState _gameState;
-        private Board _board;
+        private Game _game;
         private List<Tile> _pendingTiles;
 
-        public Player(IGameState gameState, WallSide side)
+        public Player(Game game, WallSide side)
         {
-            _gameState = gameState;
-            _board = new Board(side);
+            _game = game;
+            Board = new Board(side);
             _pendingTiles = new List<Tile>();
         }
 
-        public void TakeTiles(TileColor tileColor, AbstractDisplay display)
+        public void TakeTiles(TileColor tileColor, IDisplay display)
         {
-            if(_gameState.RoundPhase != RoundPhase.FactoryOffer)
+            if(_game.RoundPhase != RoundPhase.FactoryOffer)
             {
-                throw new AzulGameplayException(string.Format("Cannot take tiles during {0} phase", _gameState.RoundPhase));
+                throw new AzulGameplayException(string.Format("Cannot take tiles during {0} phase", _game.RoundPhase));
             }
 
             var chosenTiles = display.TakeAll(tileColor);
@@ -34,8 +35,9 @@ namespace Azul
             
             if (startingPlayerTile != null)
             {
-                _board.PlaceStartingPlayerTile(startingPlayerTile);
-                _gameState.SetNextRoundFirstPlayer(this);
+                Board.PlaceStartingPlayerTile(startingPlayerTile);
+                _game.SetNextRoundFirstPlayer(this);
+                TookFirstPlayerTile = true;
                 chosenTiles.Remove(startingPlayerTile);
             }
 
@@ -44,26 +46,28 @@ namespace Azul
 
         public void PlacePendingTiles(BoardRow boardRow)
         {
-            if (_gameState.RoundPhase != RoundPhase.FactoryOffer)
+            if (_game.RoundPhase != RoundPhase.FactoryOffer)
             {
-                throw new AzulGameplayException(string.Format("Cannot place staged tiles during {0} phase", _gameState.RoundPhase));
+                throw new AzulGameplayException(string.Format("Cannot place staged tiles during {0} phase", _game.RoundPhase));
             }
             if (_pendingTiles.Count == 0)
             {
                 throw new AzulGameplayException("No tiles staged for placing.");
             }
 
-            var surplusTiles = _board.PlaceOnPatternLine(boardRow, _pendingTiles);
-            _gameState.Discard(surplusTiles);
+            var surplusTiles = Board.PlaceOnPatternLine(boardRow, _pendingTiles);
+            _game.Discard(surplusTiles);
+            _pendingTiles.Clear();
         }
         public void PlaceOnFloorLine()
         {
-            _board.PlaceOnFloorLine(_pendingTiles);
+            Board.PlaceOnFloorLine(_pendingTiles);
             _pendingTiles.Clear();
         }
         public void CalculateRoundScore()
         {
-            throw new NotImplementedException();
+            Score += 1;
+            ScoredThisRound = true;
         }
     }
 }

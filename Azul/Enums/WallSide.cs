@@ -2,7 +2,7 @@
 {
     public enum WallSide
     {
-        EMPTY,
-        COLORED
+        Empty,
+        Colored
     }
 }

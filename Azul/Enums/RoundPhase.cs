@@ -2,8 +2,21 @@
 {
     public enum RoundPhase
     {
-        FactoryOffer = 0,
-        WallTiling = 1,
-        NextRoundPreparation = 2
+        RoundStart = 1,
+        FactoryOffer = 2,
+        WallTiling = 3,
+        NextRoundPreparation = 4,
+        GameEnd = 5
     }
+    public enum RoundPhaseStatus 
+    {
+        FactoryDisplaysEmpty,
+        FactoryDisplaysNonEmpty,
+        AllPlayersScored,
+        NotAllPlayersScored,
+        GameEndConditionMet,
+        GameEndConditionNotMet,
+        NoCondition
+    }
+
 }

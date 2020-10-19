@@ -4,14 +4,14 @@ using System.Linq;
 
 namespace Azul
 {
-    public class Board: IBoardState
+    public class Board
     {
         private static int MAX_FLOORLINE_TILES = 7;
 
         //Negative points row
-        public IEnumerable<Tile> FloorLine { get { return _floorLine.AsReadOnly(); } }
+        public IReadOnlyCollection<Tile> FloorLine { get { return _floorLine.AsReadOnly(); } }
         //Left hand side
-        public IDictionary<BoardRow, List<Tile>> PatternLines { get { return _patternLines; } }
+        public IReadOnlyDictionary<BoardRow, List<Tile>> PatternLines { get { return _patternLines; } }
         //Right hand side
         public Wall Wall { get; }
 
@@ -58,13 +58,19 @@ namespace Azul
             {
                 throw new AzulGameplayException(string.Format("Cannot place tiles on {0} as it already contains tile(s) of another color.", boardRow));
             }
-            
-            List<Tile> fittingTiles = tiles.GetRange(0, Math.Min(tiles.Count - 1, (int)boardRow - _patternLines[boardRow].Count - 1));
-            _patternLines[boardRow].AddRange(fittingTiles);
 
-            var remainingTiles = tiles.Except(fittingTiles).ToList();
+            var full = _patternLines[boardRow].Count == (int)boardRow;
+            if (!full)
+            {
+                var x = Math.Min(tiles.Count, (int)boardRow - _patternLines[boardRow].Count - 1);
+                List<Tile> fittingTiles = tiles.GetRange(0, x);
+                _patternLines[boardRow].AddRange(fittingTiles);
 
-            return PlaceOnFloorLine(remainingTiles);
+                var remainingTiles = tiles.Except(fittingTiles).ToList();
+
+                return PlaceOnFloorLine(remainingTiles);
+            }
+            return PlaceOnFloorLine(tiles);
         }
     }
 }

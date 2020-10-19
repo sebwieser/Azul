@@ -4,9 +4,10 @@ using System.Linq;
 
 namespace Azul
 {
-    public class Centre: AbstractDisplay, IDisplay
+    public class Centre : IDisplay
     {
-        public IEnumerable<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
+        public DisplayType Type { get { return DisplayType.Centre; } }
+        public IReadOnlyCollection<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
         public bool IsEmpty { get { return _tiles.Count == 0; } }
 
         private List<Tile> _tiles;
@@ -21,12 +22,12 @@ namespace Azul
             _tiles.AddRange(tiles);
         }
 
-        public override void Put(Tile tile)
+        public void Put(Tile tile)
         {
             _tiles.Add(tile);
         }
 
-        public override List<Tile> TakeAll(TileColor tileColor)
+        public List<Tile> TakeAll(TileColor tileColor)
         {
             var takenTiles = _tiles.FindAll(t => t.TileColor.Equals(tileColor) || t.TileColor.Equals(TileColor.FirstPlayer));
             _tiles = _tiles.Except(takenTiles).ToList();
