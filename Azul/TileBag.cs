@@ -38,6 +38,7 @@ namespace Azul {
 
       var tile = tiles[rng.Next(0, tiles.Count - 1)];
       tiles.Remove(tile);
+
       return tile;
     }
 

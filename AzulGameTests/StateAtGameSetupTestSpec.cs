@@ -10,9 +10,9 @@ namespace Azul.Tests {
 
     [SetUp]
     public void Setup() {
-      game2p = new Game(2).Setup();
-      game3p = new Game(3).Setup();
-      game4p = new Game(4).Setup();
+      game2p = new Game(2);
+      game3p = new Game(3);
+      game4p = new Game(4);
     }
     [Test]
     public void TestStartingPlayerDecided() {
@@ -37,13 +37,6 @@ namespace Azul.Tests {
       Assert.IsNull(game2p.StartingPlayerNextRound);
       Assert.IsNull(game3p.StartingPlayerNextRound);
       Assert.IsNull(game4p.StartingPlayerNextRound);
-    }
-    [Test]
-    public void TestGameCannotStartWithoutSetup() {
-      for(int playerCount = 2; playerCount <= 4; playerCount++) {
-        Game game = new Game(playerCount);
-        Assert.Throws(typeof(AzulSetupException), () => { game.Advance(); });
-      }
     }
     [Test]
     public void TestGameSupports2To4Players() {
@@ -79,6 +72,10 @@ namespace Azul.Tests {
     }
     [Test]
     public void TestNumberOfTilesInEachFactoryDisplay() {
+      game2p.Advance();
+      game3p.Advance();
+      game4p.Advance();
+
       foreach(var fd in game2p.FactoryDisplays) {
         Assert.AreEqual(4, fd.Tiles.Count());
       }
@@ -114,6 +111,9 @@ namespace Azul.Tests {
     }
     [Test]
     public void TestRemainingBagTilesAfterSetup() {
+      game2p.Advance();
+      game3p.Advance();
+      game4p.Advance();
       Assert.AreEqual(100 - (5 * 4), game2p.TileBag.RemainingTiles);
       Assert.AreEqual(100 - (7 * 4), game3p.TileBag.RemainingTiles);
       Assert.AreEqual(100 - (9 * 4), game4p.TileBag.RemainingTiles);
@@ -138,7 +138,7 @@ namespace Azul.Tests {
       //And all of the same color
       Assert.IsTrue(player.PendingTiles.All(t => t.TileColor.Equals(tileColor)));
 
-      player.PlacePendingTiles(BoardRow.Five);
+      player.PlacePendingTiles(BoardRow.Five, game2p.DiscardPile);
 
       //Nothing should be pending after placement
       Assert.AreEqual(0, player.PendingTiles.Count);
@@ -150,28 +150,43 @@ namespace Azul.Tests {
     [Test]
     public void TestGameFlow() {
       //This test should test simple happy game flow, but we're currently missing certain functionality
-      Assert.True(true);
 
+      var g = game2p;
+      while(g.Advance()) {
+        switch(g.RoundPhase) {
+          case RoundPhase.RoundStart:
+            break;
+          case RoundPhase.FactoryOffer:
+            var wantedColors = g.ActivePlayer.Board.Wall.GetFreeTileColorsInRow(BoardRow.One);
 
-      //var g = game2p;
-      //while (g.Advance())
-      //{
-      //    switch (g.RoundPhase)
-      //    {
-      //        case RoundPhase.FactoryOffer:
-      //            var display = g.AllDisplays.First(d => !d.IsEmpty);
-      //            var tileColor = display.Tiles.First(t => !t.TileColor.Equals(TileColor.FirstPlayer)).TileColor;
-      //            g.ActivePlayer.TakeTiles(tileColor, display);
-      //            g.ActivePlayer.PlacePendingTiles(BoardRow.One);
-      //            break;
-      //        case RoundPhase.WallTiling:
-      //            foreach(var p in g.Players)
-      //            {
-      //                p.CalculateRoundScore();
-      //            }
-      //            break;
-      //    }
-      //}
+            IDisplay display;
+            TileColor tilecolor;
+            try { //fetching desired color
+              display = g.AllDisplays.First(d => d.Tiles.Any(t => wantedColors.Any(x => x.Equals(t.TileColor))));
+              tilecolor = display.Tiles.First(t => wantedColors.Any(c => c.Equals(t.TileColor))).TileColor;
+            }
+            catch { //otherwise, just take anything this turn
+              display = g.AllDisplays.First(d => !d.IsEmpty && !(d.Type == DisplayType.Centre && d.Tiles.Count == 1 && d.Tiles.First().TileColor.Equals(TileColor.FirstPlayer)));
+              tilecolor = display.Tiles.First(t => !t.TileColor.Equals(TileColor.FirstPlayer)).TileColor;
+            }
+            g.ActivePlayer.TakeTiles(tilecolor, display);
+            if(wantedColors.Any(x => x.Equals(tilecolor))) {
+              g.ActivePlayer.PlacePendingTiles(BoardRow.One, g.DiscardPile);
+            }
+            else {
+              g.ActivePlayer.PlaceOnFloorLine();
+            }
+            break;
+          case RoundPhase.WallTiling:
+            foreach(var p in g.Players) {
+              for(int i = 1; i <= 5 && !p.Board.AllPatternLinesProcessed(); i++) {
+                var x = p.Board.PatternLines[(BoardRow)i].Count > 0 ? p.Board.Wall.IndexOf((BoardRow)i, p.Board.PatternLines[(BoardRow)i].First().TileColor) : -1;
+                p.ScoreRow((BoardRow)i, x, g.DiscardPile);
+              }
+            }
+            break;
+        }
+      }
     }
   }
 }

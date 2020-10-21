@@ -14,6 +14,9 @@ namespace Azul {
     public void Put(List<Tile> discardedTiles) {
       tiles.AddRange(discardedTiles);
     }
+    public void Put(Tile tile) {
+      tiles.Add(tile);
+    }
 
     public List<Tile> TakeAll() {
       var allTiles = new List<Tile>(tiles);

@@ -39,7 +39,7 @@ namespace Azul {
         return tiles;
       }
 
-      var fittingTiles = tiles.GetRange(0, remainingCapacity - 1);
+      var fittingTiles = tiles.GetRange(0, Math.Min(tiles.Count, remainingCapacity - 1));
       floorLine.AddRange(fittingTiles);
 
       return tiles.Except(fittingTiles).ToList();
@@ -52,13 +52,13 @@ namespace Azul {
     }
 
     public List<Tile> PlaceOnPatternLine(BoardRow boardRow, List<Tile> tiles) {
-      if(patternLines[boardRow].Exists(t => t.TileColor != tiles.First().TileColor)) {
-        throw new AzulGameplayException(string.Format("Cannot place tiles on {0} as it already contains tile(s) of another color.", boardRow));
-      }
+      //if(patternLines[boardRow].Exists(t => t.TileColor != tiles.First().TileColor)) {
+      //  throw new AzulGameplayException(string.Format("Cannot place tiles on {0} as it already contains tile(s) of another color.", boardRow));
+      //}
 
       var full = patternLines[boardRow].Count == (int)boardRow;
       if(!full) {
-        var x = Math.Min(tiles.Count, (int)boardRow - patternLines[boardRow].Count - 1);
+        var x = Math.Min(tiles.Count, (int)boardRow - patternLines[boardRow].Count);
         List<Tile> fittingTiles = tiles.GetRange(0, x);
         patternLines[boardRow].AddRange(fittingTiles);
 
@@ -67,6 +67,14 @@ namespace Azul {
         return PlaceOnFloorLine(remainingTiles);
       }
       return PlaceOnFloorLine(tiles);
+    }
+
+    public bool PatternLineFull(BoardRow row) {
+      return PatternLines[row].Count == (int)row;
+    }
+
+    public bool AllPatternLinesProcessed() {
+      return patternLines.All(x => x.Value.Count() < (int)x.Key);
     }
   }
 }

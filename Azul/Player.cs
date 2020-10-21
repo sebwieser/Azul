@@ -1,52 +1,49 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Azul {
 
   public class Player {
-    public Board Board { get; }
-    public int Score { get; private set; }
-    public IReadOnlyCollection<Tile> PendingTiles => pendingTiles.AsReadOnly();
-    public bool ScoredThisRound { get; private set; }
-    public bool HasFiveHorizontalTilesInRow { get; private set; }
-    public bool TookFirstPlayerTile { get; private set; }
 
-    private Game game;
+    public event EventHandler TookFirstPlayerTile;
+    public event EventHandler ScoredThisRound;
+    public event EventHandler TriggeredGameEndCondition;
+
+    public Board Board { get; }
+    public int Score => Board.Wall.Score;
+    public IReadOnlyCollection<Tile> PendingTiles => pendingTiles.AsReadOnly();
+
     private List<Tile> pendingTiles;
 
-    public Player(Game game, WallSide side) {
-      this.game = game;
+    public Player(WallSide side) {
       Board = new Board(side);
       pendingTiles = new List<Tile>();
     }
 
     public void TakeTiles(TileColor tileColor, IDisplay display) {
-      if(game.RoundPhase != RoundPhase.FactoryOffer) {
-        throw new AzulGameplayException(string.Format("Cannot take tiles during {0} phase", game.RoundPhase));
-      }
-
       var chosenTiles = display.TakeAll(tileColor);
       var startingPlayerTile = chosenTiles.Find(t => t.TileColor.Equals(TileColor.FirstPlayer));
 
       if(startingPlayerTile != null) {
         Board.PlaceStartingPlayerTile(startingPlayerTile);
-        game.SetNextRoundFirstPlayer(this);
-        TookFirstPlayerTile = true;
+        OnPlayerEvent(TookFirstPlayerTile);
         chosenTiles.Remove(startingPlayerTile);
       }
 
       pendingTiles.AddRange(chosenTiles);
     }
 
-    public void PlacePendingTiles(BoardRow boardRow) {
-      if(game.RoundPhase != RoundPhase.FactoryOffer) {
-        throw new AzulGameplayException(string.Format("Cannot place staged tiles during {0} phase", game.RoundPhase));
-      }
+    public void PlacePendingTiles(BoardRow boardRow, DiscardPile discardPile) {
       if(pendingTiles.Count == 0) {
         throw new AzulGameplayException("No tiles staged for placing.");
       }
 
       var surplusTiles = Board.PlaceOnPatternLine(boardRow, pendingTiles);
-      game.Discard(surplusTiles);
+      if(surplusTiles.Count > 0) {
+        discardPile.Put(surplusTiles);
+      }
+
       pendingTiles.Clear();
     }
 
@@ -54,10 +51,32 @@ namespace Azul {
       Board.PlaceOnFloorLine(pendingTiles);
       pendingTiles.Clear();
     }
+    public void ScoreRow(BoardRow row, int wallPosition, DiscardPile discardPile) {
+      if(Board.PatternLineFull(row)) {
+        var tile = Board.PatternLines[row].First();
+        Board.PatternLines[row].Remove(tile);
 
-    public void CalculateRoundScore() {
-      Score += 1;
-      ScoredThisRound = true;
+        if(!Board.Wall.Place(tile, (int)(row) - 1, wallPosition)) {
+          discardPile.Put(tile);
+        }
+
+        discardPile.Put(Board.PatternLines[row]);
+        Board.PatternLines[row].Clear();
+      }
+
+      if(Board.Wall.RowFull(row)) {
+        OnPlayerEvent(TriggeredGameEndCondition);
+      }
+
+      if(Board.AllPatternLinesProcessed()) {
+        OnPlayerEvent(ScoredThisRound);
+      }
     }
+
+    protected virtual void OnPlayerEvent(EventHandler eh) {
+      EventHandler handler = eh;
+      handler?.Invoke(this, EventArgs.Empty);
+    }
+
   }
 }

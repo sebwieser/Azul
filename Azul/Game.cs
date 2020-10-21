@@ -16,6 +16,8 @@ namespace Azul {
     public TileBag TileBag { get; }
     public DiscardPile DiscardPile { get; }
     public IDisplay Centre => centre;
+    public int PlayersScoredThisRound { get; private set; }
+    public bool AllPlayersScoredThisRound => PlayerCount == PlayersScoredThisRound;
 
     public IReadOnlyCollection<IDisplay> AllDisplays {
       get {
@@ -33,7 +35,6 @@ namespace Azul {
     private List<FactoryDisplay> factoryDisplays;
     private List<Player> players;
     private Centre centre;
-    private bool isSetup;
     private Dictionary<(RoundPhase, RoundPhaseStatus), RoundPhase> phaseTransitions;
 
     public Game(int playerCount) {
@@ -43,12 +44,14 @@ namespace Azul {
         throw new AzulSetupException(string.Format("Cannot start the game with {0} players. Game supports 2-4 players.", playerCount));
       }
 
-      players = new List<Player>(playerCount);
-      centre = new Centre();
-      factoryDisplays = new List<FactoryDisplay>(2 * playerCount + 1);
       TileBag = new TileBag();
       DiscardPile = new DiscardPile();
 
+      players = new List<Player>(playerCount);
+      centre = new Centre();
+      factoryDisplays = new List<FactoryDisplay>(2 * playerCount + 1);
+
+      RoundPhase = RoundPhase.RoundStart;
       phaseTransitions = new Dictionary<(RoundPhase, RoundPhaseStatus), RoundPhase>()
           {
                     { (RoundPhase.RoundStart, RoundPhaseStatus.NoCondition), RoundPhase.FactoryOffer },
@@ -60,24 +63,34 @@ namespace Azul {
                     { (RoundPhase.NextRoundPreparation, RoundPhaseStatus.GameEndConditionMet), RoundPhase.GameEnd }
                 };
 
-      RoundPhase = RoundPhase.RoundStart;
-      RoundPhaseStatus = RoundPhaseStatus.NoCondition;
-      Round = 0;
+      CreateFactoryDisplays();
+      CreatePlayers();
     }
-
-    public RoundPhase AdvancePhase() {
+    private void CreatePlayers() {
+      for(int i = 0; i < PlayerCount; i++) {
+        var p = new Player(WallSide.Colored);
+        p.TookFirstPlayerTile += TookFirstPlayerTileHandler;
+        p.TriggeredGameEndCondition += TriggeredGameEndConditionHandler;
+        p.ScoredThisRound += ScoredThisRoundHandler;
+        players.Add(p);
+      }
+    }
+    private void CreateFactoryDisplays() {
+      for(int i = 0; i < (2 * PlayerCount + 1); i++) {
+        factoryDisplays.Add(new FactoryDisplay(centre));
+      }
+      centre.Put(new Tile(TileColor.FirstPlayer));
+    }
+    private void PrepareRound() {
+      Round++;
+      RoundPhaseStatus = RoundPhaseStatus.NoCondition;
+      PlayersScoredThisRound = 0;
+      DecideStartingPlayer();
+      FillFactoryDisplays();
+    }
+    private RoundPhase AdvancePhase() {
       return phaseTransitions[(RoundPhase, RoundPhaseStatus)];
     }
-
-    public Game Setup() {
-      SetupFactoryDisplays();
-      SetupPlayers();
-
-      isSetup = true;
-
-      return this;
-    }
-
     private void DecideStartingPlayer() {
       if(StartingPlayerNextRound == null) {
         var rng = new Random();
@@ -88,22 +101,6 @@ namespace Azul {
       ActivePlayer = StartingPlayer = StartingPlayerNextRound;
       StartingPlayerNextRound = null;
     }
-
-    private void SetupPlayers() {
-      for(int i = 0; i < PlayerCount; i++) {
-        players.Add(new Player(this, WallSide.Colored));
-      }
-    }
-
-    private void SetupFactoryDisplays() {
-      for(int i = 0; i < (2 * PlayerCount + 1); i++) {
-        factoryDisplays.Add(new FactoryDisplay(centre));
-      }
-
-      FillFactoryDisplays();
-      centre.Put(new Tile(TileColor.FirstPlayer));
-    }
-
     private void FillFactoryDisplays() {
       foreach(var factoryDisplay in factoryDisplays) {
         for(var i = 0; i < 4; i++) {
@@ -117,50 +114,31 @@ namespace Azul {
         }
       }
     }
-
     public void SetNextRoundFirstPlayer(Player player) {
       if(StartingPlayerNextRound != null) {
         throw new AzulGameplayException("First player already set for next round");
       }
       StartingPlayerNextRound = player;
     }
-
-    public void SetNextRoundFirstPlayer() {
-      StartingPlayerNextRound = players.Find(p => p.TookFirstPlayerTile);
+    private void TookFirstPlayerTileHandler(object sender, EventArgs eventArgs) {
+      StartingPlayerNextRound = (Player)sender;
     }
-
-    public void Discard(List<Tile> tiles) {
-      DiscardPile.Put(tiles);
-    }
-
-    private void CheckGameEndCondition() {
+    private void TriggeredGameEndConditionHandler(object sender, EventArgs eventArgs) {
       if(!FinalRound) {
-        foreach(var patternLine in ActivePlayer.Board.PatternLines) {
-          if(patternLine.Value.Count == (int)patternLine.Key && ActivePlayer.Board.Wall.Rows[patternLine.Key].Count >= 4) {
-            FinalRound = true;
-            return;
-          }
-        }
+        FinalRound = true;
       }
     }
-
-    //TODO: this is far from done
+    private void ScoredThisRoundHandler(object sender, EventArgs eventArgs) {
+      PlayersScoredThisRound++;
+    }
     public bool Advance() {
-      if(!isSetup) {
-        throw new AzulSetupException("Game is not set up!");
-      }
-
       switch(RoundPhase) {
         case RoundPhase.RoundStart:
-          Round++;
-          RoundPhaseStatus = RoundPhaseStatus.NoCondition;
-          DecideStartingPlayer();
+          PrepareRound();
           break;
-
         case RoundPhase.FactoryOffer:
           if(AllDisplaysEmpty()) {
             RoundPhaseStatus = RoundPhaseStatus.FactoryDisplaysEmpty;
-            SetNextRoundFirstPlayer();
             break;
           }
           RoundPhaseStatus = RoundPhaseStatus.FactoryDisplaysNonEmpty;
@@ -170,7 +148,7 @@ namespace Azul {
           break;
 
         case RoundPhase.WallTiling:
-          if(AllPlayersScoredThisRound()) {
+          if(AllPlayersScoredThisRound) {
             RoundPhaseStatus = RoundPhaseStatus.AllPlayersScored;
             break;
           }
@@ -178,13 +156,11 @@ namespace Azul {
           break;
 
         case RoundPhase.NextRoundPreparation:
-          CheckGameEndCondition();
           if(FinalRound) {
             RoundPhaseStatus = RoundPhaseStatus.GameEndConditionMet;
             break;
           }
           RoundPhaseStatus = RoundPhaseStatus.GameEndConditionNotMet;
-          FillFactoryDisplays();
           break;
 
         case RoundPhase.GameEnd:
@@ -205,10 +181,6 @@ namespace Azul {
 
     private void AdvancePlayerTurnOrder() {
       ActivePlayer = players[(players.IndexOf(ActivePlayer) + 1) % PlayerCount];
-    }
-
-    private bool AllPlayersScoredThisRound() {
-      return players.All(p => p.ScoredThisRound);
     }
   }
 }
