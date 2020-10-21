@@ -1,8 +1,7 @@
-﻿namespace Azul
-{
-    public enum DisplayType
-    {
-        Centre,
-        FactoryDisplay
-    }
+﻿namespace Azul {
+
+  public enum DisplayType {
+    Centre,
+    FactoryDisplay
+  }
 }

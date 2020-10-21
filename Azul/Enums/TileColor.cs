@@ -1,13 +1,12 @@
-﻿namespace Azul
-{
-    public enum TileColor
-    {
-        Black,
-        Red,
-        Blue,
-        Yellow,
-        Turquoise,
+﻿namespace Azul {
 
-        FirstPlayer
-    }
+  public enum TileColor {
+    Black,
+    Red,
+    Blue,
+    Yellow,
+    Turquoise,
+
+    FirstPlayer
+  }
 }

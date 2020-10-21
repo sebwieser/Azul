@@ -1,8 +1,7 @@
-﻿namespace Azul
-{
-    public enum WallSide
-    {
-        Empty,
-        Colored
-    }
+﻿namespace Azul {
+
+  public enum WallSide {
+    Empty,
+    Colored
+  }
 }

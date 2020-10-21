@@ -1,27 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
-namespace Azul
-{
-    public class DiscardPile
-    {
-        public IReadOnlyCollection<Tile> Tiles { get { return _tiles.AsReadOnly(); } }
+namespace Azul {
 
-        private List<Tile> _tiles;
-        public DiscardPile()
-        {
-            _tiles = new List<Tile>();
-        }
-        public void Put(List<Tile> discardedTiles)
-        {
-            _tiles.AddRange(discardedTiles);
-        }
-        public List<Tile> TakeAll()
-        {
-            var allTiles = new List<Tile>(_tiles);
-            _tiles.Clear();
-            return allTiles;
-        }
+  public class DiscardPile {
+    public IReadOnlyCollection<Tile> Tiles => tiles.AsReadOnly();
+
+    private List<Tile> tiles;
+
+    public DiscardPile() {
+      tiles = new List<Tile>();
     }
+
+    public void Put(List<Tile> discardedTiles) {
+      tiles.AddRange(discardedTiles);
+    }
+
+    public List<Tile> TakeAll() {
+      var allTiles = new List<Tile>(tiles);
+      tiles.Clear();
+      return allTiles;
+    }
+  }
 }
