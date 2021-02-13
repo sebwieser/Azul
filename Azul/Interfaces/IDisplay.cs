@@ -9,5 +9,7 @@ namespace Azul {
 
     void Put(Tile tile);
     List<Tile> TakeAll(TileColor tileColor);
+
+    int GetColorCount(TileColor tileColor);
   }
 }

@@ -19,6 +19,13 @@ namespace Azul {
     }
 
     public List<Tile> TakeAll(TileColor tileColor) {
+      if(IsEmpty || GetColorCount(tileColor) == 0) {
+        throw new AzulGameplayException("Display is empty or doesn't contain the required tile color.");
+      }
+      if(tileColor.Equals(TileColor.FirstPlayer)) {
+        throw new AzulGameplayException("You've chosen a first player tile, this is not allowed. Please pick another color.");
+      }
+
       var chosenTiles = tiles.FindAll(t => t.TileColor.Equals(tileColor));
       var remainingTiles = tiles.Except(chosenTiles).ToList();
 
@@ -37,6 +44,10 @@ namespace Azul {
       }
 
       tiles.Add(tile);
+    }
+
+    public int GetColorCount(TileColor tileColor) {
+      return tiles.Count(t => t.TileColor.Equals(tileColor));
     }
   }
 }

@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 namespace Azul {
 
   [Serializable]
-  internal class AzulPlacementException : Exception {
+  public class AzulPlacementException : Exception {
     public AzulPlacementException() {
     }
 

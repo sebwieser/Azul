@@ -4,7 +4,10 @@ using System.Linq;
 
 namespace Azul {
 
-  public class Game {
+  public class Game : IGameInternal {
+
+    public event EventHandler<Player> ActivePlayerChanged;
+
     public int PlayerCount { get; }
     public Player StartingPlayer { get; private set; }
     public Player StartingPlayerNextRound { get; private set; }
@@ -68,7 +71,7 @@ namespace Azul {
     }
     private void CreatePlayers() {
       for(int i = 0; i < PlayerCount; i++) {
-        var p = new Player(WallSide.Colored);
+        var p = new Player(WallSide.Colored, this);
         p.TookFirstPlayerTile += TookFirstPlayerTileHandler;
         p.TriggeredGameEndCondition += TriggeredGameEndConditionHandler;
         p.ScoredThisRound += ScoredThisRoundHandler;
@@ -89,16 +92,29 @@ namespace Azul {
       FillFactoryDisplays();
     }
     private RoundPhase AdvancePhase() {
-      return phaseTransitions[(RoundPhase, RoundPhaseStatus)];
+      var currentRoundPhase = RoundPhase;
+      var newRoundPhase = phaseTransitions[(RoundPhase, RoundPhaseStatus)];
+      if (currentRoundPhase != newRoundPhase) {
+      //  OnRoundPhaseChanged(newRoundPhase);
+      }
+      return newRoundPhase;
     }
+
+    protected virtual void OnActivePlayerChanged(Player newPlayer) {
+      ActivePlayerChanged?.Invoke(this, newPlayer);
+    }
+
+
     private void DecideStartingPlayer() {
       if(StartingPlayerNextRound == null) {
         var rng = new Random();
         ActivePlayer = StartingPlayer = players[rng.Next(0, PlayerCount - 1)];
+        OnActivePlayerChanged(ActivePlayer);
         return;
       }
 
       ActivePlayer = StartingPlayer = StartingPlayerNextRound;
+      OnActivePlayerChanged(ActivePlayer);
       StartingPlayerNextRound = null;
     }
     private void FillFactoryDisplays() {
@@ -181,6 +197,15 @@ namespace Azul {
 
     private void AdvancePlayerTurnOrder() {
       ActivePlayer = players[(players.IndexOf(ActivePlayer) + 1) % PlayerCount];
+      OnActivePlayerChanged(ActivePlayer);
+    }
+
+    public void Discard(List<Tile> tiles) {
+      DiscardPile.Put(tiles);
+    }
+
+    public void Discard(Tile tile) {
+      DiscardPile.Put(tile);
     }
   }
 }

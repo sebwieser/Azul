@@ -1,80 +1,80 @@
-﻿using System;
+﻿using Azul.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Text;
 
 namespace Azul {
-
   public class Board {
-    private static int MAX_FLOORLINE_TILES = 7;
 
-    //Negative points row
-    public IReadOnlyCollection<Tile> FloorLine => floorLine.AsReadOnly();
+    public Wall Wall { get; private set; }
+    public Dictionary<PatternLineRow, PatternLine> PatternLines { get; private set; }
+    public FloorLine FloorLine { get; private set; }
+    public int Score {
+      get {
+        return Math.Max(0, scoreToRound + RoundScore);
+      }
+    }
+    public int RoundScore { 
+      get { 
+        return Wall.RoundScore + FloorLine.RoundScore; 
+      } 
+    }
 
-    //Left hand side
-    public IReadOnlyDictionary<BoardRow, List<Tile>> PatternLines => patternLines;
+    private int scoreToRound;
 
-    //Right hand side
-    public Wall Wall { get; }
-
-    private List<Tile> floorLine;
-    private Dictionary<BoardRow, List<Tile>> patternLines;
-
-    public Board(WallSide side) {
-      floorLine = new List<Tile>(MAX_FLOORLINE_TILES);
-      Wall = new Wall(side);
-      patternLines = new Dictionary<BoardRow, List<Tile>>(5)
-      {
-                { BoardRow.One, new List<Tile>(1) },
-                { BoardRow.Two, new List<Tile>(2) },
-                { BoardRow.Three, new List<Tile>(3) },
-                { BoardRow.Four, new List<Tile>(4) },
-                { BoardRow.Five, new List<Tile>(5) },
-            };
+    public Board(WallSide wallSide) {
+      FloorLine = new FloorLine();
+      Wall = wallSide.Equals(WallSide.Colored) ? (Wall)new WallColored() : new WallBlank();
+      foreach (PatternLineRow capacity in Enum.GetValues(typeof(PatternLineRow))) {
+        PatternLines.Add(capacity, new PatternLine(capacity));
+      }
+      scoreToRound = 0;
     }
 
     public List<Tile> PlaceOnFloorLine(List<Tile> tiles) {
-      int remainingCapacity = MAX_FLOORLINE_TILES - floorLine.Count;
+      var excessTiles = new List<Tile>();
+      int numExcessTiles = tiles.Count - FloorLine.EmptySlots;
 
-      if(remainingCapacity < 1 || tiles.Count == 0) {
-        return tiles;
+      if(numExcessTiles > 0) {
+        excessTiles = tiles.GetRange(0, numExcessTiles);
+        tiles.RemoveRange(0, numExcessTiles);
       }
 
-      var fittingTiles = tiles.GetRange(0, Math.Min(tiles.Count, remainingCapacity - 1));
-      floorLine.AddRange(fittingTiles);
+      FloorLine.PlaceTiles(tiles);
 
-      return tiles.Except(fittingTiles).ToList();
+      return excessTiles;
     }
+    public List<Tile> PlaceOnPatternLine(List<Tile> tiles, PatternLineRow capacity) {
+      var patternLine = PatternLines[capacity];
+      var excessTiles = new List<Tile>();
+      int numExcessTiles = tiles.Count - patternLine.EmptySlots;
 
-    public void PlaceStartingPlayerTile(Tile tile) {
-      if(floorLine.Count < MAX_FLOORLINE_TILES) {
-        floorLine.Add(tile);
+      if(numExcessTiles > 0) {
+        excessTiles = tiles.GetRange(0, numExcessTiles);
+        tiles.RemoveRange(0, numExcessTiles);
       }
+
+      patternLine.PlaceTiles(tiles);
+
+      return PlaceOnFloorLine(excessTiles);
+    }
+    public List<Tile> ScoreRow(WallPosition wallPosition) {
+      var patternLine = PatternLines[(PatternLineRow)(wallPosition.Row + 1)];
+      var tile = patternLine.TakeTileForScoring();
+      Wall.PlaceAndScoreTile(tile, wallPosition);
+
+      return patternLine.TakeRemainingTiles();
+    }
+    public List<Tile> PerformRoundCleanup() {
+      UpdateTotalScore();
+      Wall.ResetRoundScore();
+      return FloorLine.TakeTiles();
     }
 
-    public List<Tile> PlaceOnPatternLine(BoardRow boardRow, List<Tile> tiles) {
-      //if(patternLines[boardRow].Exists(t => t.TileColor != tiles.First().TileColor)) {
-      //  throw new AzulGameplayException(string.Format("Cannot place tiles on {0} as it already contains tile(s) of another color.", boardRow));
-      //}
-
-      var full = patternLines[boardRow].Count == (int)boardRow;
-      if(!full) {
-        var x = Math.Min(tiles.Count, (int)boardRow - patternLines[boardRow].Count);
-        List<Tile> fittingTiles = tiles.GetRange(0, x);
-        patternLines[boardRow].AddRange(fittingTiles);
-
-        var remainingTiles = tiles.Except(fittingTiles).ToList();
-
-        return PlaceOnFloorLine(remainingTiles);
-      }
-      return PlaceOnFloorLine(tiles);
-    }
-
-    public bool PatternLineFull(BoardRow row) {
-      return PatternLines[row].Count == (int)row;
-    }
-
-    public bool AllPatternLinesProcessed() {
-      return patternLines.All(x => x.Value.Count() < (int)x.Key);
+    private void UpdateTotalScore() {
+      scoreToRound += RoundScore;
     }
   }
 }

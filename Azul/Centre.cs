@@ -28,5 +28,9 @@ namespace Azul {
 
       return takenTiles;
     }
+
+    public int GetColorCount(TileColor tileColor) {
+      return tiles.Count(t => t.TileColor.Equals(tileColor));
+    }
   }
 }

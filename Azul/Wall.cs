@@ -2,111 +2,124 @@
 
 namespace Azul {
 
-  public class Wall {
+  public struct WallPosition {
+    public int Row { get; }
+    public int Column { get; }
 
-    public WallSide Side { get; }
-
-    public Tile[,] Slots { get; }
-
-    public TileColor[,] SlotConfiguration { get; }
-    public int Score { get; private set; }
-
-    public Wall(WallSide side) {
-      Side = side;
-      Slots = new Tile[5, 5];
-      SlotConfiguration = new TileColor[5, 5] {
-        {TileColor.Blue,TileColor.Yellow,TileColor.Red,TileColor.Black,TileColor.Turquoise },
-        {TileColor.Turquoise,TileColor.Blue,TileColor.Yellow,TileColor.Red,TileColor.Black },
-        {TileColor.Black,TileColor.Turquoise,TileColor.Blue,TileColor.Yellow,TileColor.Red },
-        {TileColor.Red,TileColor.Black,TileColor.Turquoise,TileColor.Blue,TileColor.Yellow },
-        {TileColor.Yellow,TileColor.Red,TileColor.Black,TileColor.Turquoise,TileColor.Blue }
-      };
+    public WallPosition(int row, int column) {
+      Row = row;
+      Column = column;
     }
 
-    public bool Place(Tile tile, int x, int y) {
-      if(PositionWithinBoundaries(x, y) && Slots[x, y] == null && SlotConfiguration[x, y].Equals(tile.TileColor)) {
-        PutAndScore(tile, x, y);
-        return true;
+    public bool InBounds() {
+      return DimensionInBounds(Row) && DimensionInBounds(Column);
+    }
+    public static bool DimensionInBounds(int dimension) {
+      return dimension >= 0 && dimension < 5;
+    }
+    public override string ToString() {
+      return string.Format("Wall position: Row={0}, Column={1}", Row, Column);
+    }
+  }
+
+  public abstract class Wall {
+    public int RoundScore { get; private set; }
+    public Tile[][] Slots { get; private set; }
+    public abstract WallSide Side { get; protected set; }
+
+    protected Wall() {
+      Slots = new Tile[5][];
+      Slots[0] = new Tile[5] { null, null, null, null, null };
+      Slots[1] = new Tile[5] { null, null, null, null, null };
+      Slots[2] = new Tile[5] { null, null, null, null, null };
+      Slots[3] = new Tile[5] { null, null, null, null, null };
+      Slots[4] = new Tile[5] { null, null, null, null, null };
+    }
+
+    public void PlaceAndScoreTile(Tile tile, WallPosition position) {
+      if(!position.InBounds()) {
+        throw new AzulPlacementException(string.Format("{0} is out of bounds", position));
       }
-      return false;
+      PlaceTile(tile, position);
+      ScoreTile(position);
     }
-    private void PutAndScore(Tile tile, int x, int y) {
-      Slots[x, y] = tile;
+    public IEnumerable<WallPosition> GetValidRowPositionsForTile(Tile tile, int row) {
+      if (!WallPosition.DimensionInBounds(row)) {
+        throw new AzulPlacementException(string.Format("Row={0} is out of bounds", row));
+      }
+      for (int column = 0; column < 5; column++) {
+        WallPosition position = new WallPosition(row, column);
+        if(IsValidPosition(tile.TileColor, position)) {
+          yield return position;
+        }
+      }
+    }
 
-      int tempX = 0;
-      int tempY = 0;
+    private void PlaceTile(Tile tile, WallPosition position) {
+      if(!IsValidPosition(tile.TileColor, position)) {
+        throw new AzulPlacementException(string.Format("Cannot place {0} onto {1}", tile, position));
+      }
+      Slots[position.Row][position.Column] = tile;
+    }
+    private void ScoreTile(WallPosition position) {
+      int verticalScore = 0;
+      int horizontalScore = 0;
+      bool containsPositionRow = false;
+      bool columnDone = false;
+      bool containsPositionColumn = false;
+      bool rowDone = false;
 
-      bool containsX = false;
-      bool doneX = false;
-      bool containsY = false;
-      bool doneY = false;
-
-      for(int h = 0, v = 0; h < 5 && v < 5; h++, v++) {
-        if(Slots[h, y] != null && !doneX) {
-          tempX++;
-          if(h == x) {
-            containsX = true;
+      for(int i = 0; i < 5; i++) {
+        #region Vertical Scoring
+        //if slot contains a tile and we didn't yet break the streak after passing through the position
+        if(Slots[i][position.Column] != null && !columnDone) {
+          verticalScore++;
+          if(i == position.Row) {
+            containsPositionRow = true;
           }
         }
-        else if(!containsX) {
-          tempX = 0;
+        //if we broke the streak but haven't yet reached our newly placed tile, reset temporary score for this direction
+        else if(!containsPositionRow) {
+          verticalScore = 0;
         }
+        //getting here means we broke the streak and have already passed through newly placed tile, that's it: scoring for this direction is finished
         else {
-          doneX = true;
+          columnDone = true;
         }
-
-        if(Slots[x, v] != null && !doneY) {
-          tempY++;
-          if(v == y) {
-            containsY = true;
+        #endregion
+        #region Horizontal Scoring
+        if(Slots[position.Row][i] != null && !rowDone) {
+          horizontalScore++;
+          if(i == position.Column) {
+            containsPositionColumn = true;
           }
         }
-        else if(!containsY) {
-          tempY = 0;
+        else if(!containsPositionColumn) {
+          horizontalScore = 0;
         }
         else {
-          doneY = true;
+          rowDone = true;
         }
 
-        if(doneX && doneY) {
+        if(columnDone && rowDone) {
           break;
         }
+        #endregion
       }
 
-      Score += tempX > 1 && tempY > 1 ? (tempX + tempY) : tempX > 1 ? tempX : tempY;
+      RoundScore += (verticalScore > 1 && horizontalScore > 1) ? 
+          (verticalScore + horizontalScore) : verticalScore > 1 ? 
+            verticalScore : horizontalScore;
     }
-    private bool PositionWithinBoundaries(int x, int y) {
-      if(x < 0 || x > 4 || y < 0 || y > 4) {
-        return false;
-      }
-      return true;
-    }
-
-    public bool RowFull(BoardRow row) {
-      for(int i = 0; i < 5; i++) {
-        if(Slots[(int)row - 1, i] == null) {
-          return false;
-        }
-      }
-      return true;
-    }
-    public int IndexOf(BoardRow row, TileColor tileColor) {
-      for(int i = 0; i < 5; i++) {
-        if(SlotConfiguration[(int)row - 1, i].Equals(tileColor)) {
-          return i;
-        }
-      }
-      throw new AzulGameplayException("No such color on the board row.");
+    protected bool SlotEmpty(WallPosition position) {
+      return Slots[position.Row][position.Column] is null;
     }
 
-    //TODO: remove, this is just a testing helper:
-    public List<TileColor> GetFreeTileColorsInRow(BoardRow row) {
-      var l = new List<TileColor>();
-      for(int i = 0; i < 5; i++) {
-        if(Slots[(int)row - 1, i] == null)
-          l.Add(SlotConfiguration[(int)row - 1, i]);
-      }
-      return l;
+    public void ResetRoundScore() {
+      RoundScore = 0;
     }
+
+    protected abstract bool IsValidPosition(TileColor tileColor, WallPosition position); 
+
   }
 }

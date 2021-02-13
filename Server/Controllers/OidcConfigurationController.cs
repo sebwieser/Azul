@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Azul;
 
 namespace Azul.Server.Controllers {
   public class OidcConfigurationController : Controller {
